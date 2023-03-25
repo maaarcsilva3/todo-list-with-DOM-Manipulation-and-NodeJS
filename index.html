@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>To Do List JS</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="todo-list">
+            <h1>To-Do List</h1>
+
+            <input id="input_task" type="text" placeholder="Enter task">
+            <button id="add-button">Add</button>
+            <div class="itemlist_container">
+                <ol id="item-list"></ol>   
+            </div>    
+        </div>
+
+        <script>
+            var i=0;
+
+            var globalvar="";
+
+            const addButton = document.getElementById("add-button");
+            addButton.addEventListener("click", addTask);
+
+          
+            function addTask() {
+              
+                const inputTask = document.getElementById("input_task");
+                const inputTaskValue = inputTask.value;
+                const itemList = document.getElementById("item-list");
+                const newItem = document.createElement("li");
+                i++;
+                newItem.setAttribute("id", i);
+                newItem.innerText = inputTaskValue;
+                itemList.appendChild(newItem);
+                inputTask.value = "";
+
+                const editButton = document.createElement("button");
+                editButton.classList.add("edit-button");
+                editButton.innerText = "Edit";
+                newItem.appendChild(editButton);
+
+
+                const deleteButton = document.createElement("button");
+                deleteButton.classList.add("delete-button");
+                deleteButton.innerText = "Delete";
+                newItem.appendChild(deleteButton);
+
+
+                const doneButton = document.createElement("button");
+                doneButton.classList.add("done-button");
+                doneButton.innerText = "Done";
+                newItem.appendChild(doneButton);
+
+                // add event listeners to the new buttons
+                editButton.addEventListener("click", editTask);
+                deleteButton.addEventListener("click", deleteTask);
+                doneButton.addEventListener("click", markTaskDone);
+
+                // limit to 5 entries
+                if (document.querySelectorAll("#item-list li").length >= 5) {
+                    addButton.disabled = true;
+                    inputTask.placeholder = "";
+                    addButton.innerHTML = "Maximum of 5 Tasks Only";
+                }
+
+                console.log(i);
+                const myPayload = { 
+                    "task": inputTaskValue,
+                    "id": i
+                }
+                console.log(myPayload);
+
+                
+
+                fetch ("http://localhost:9000/inputTask/postTask", {
+                    method: "POST", 
+                    headers: {
+                        'Accept': "application/json",
+                        'Content-Type': "application/json"
+                    },
+
+                    body: JSON.stringify(myPayload)
+
+                })
+                .then (res => res.json())
+                .then (data => {
+                    console.log(data);
+                    console.log(inputTaskValue);
+                    console.log("inputtask value sa tass nito");
+
+                    
+    
+                })
+            }
+
+
+            function editTask(event) {
+            const listItem = event.target.parentNode;
+            const taskText = listItem.firstChild;
+            const editInput = document.createElement("input");
+            editInput.className = "form_edit";
+            editInput.type = "text";
+            editInput.value = taskText.textContent;
+            listItem.insertBefore(editInput, taskText);
+            listItem.removeChild(taskText);
+            event.target.innerText = "Save";
+            event.target.removeEventListener("click", editTask);
+            event.target.addEventListener("click", saveTask);
+
+       
+
+
+
+            function saveTask(event) {
+            const listItem = event.target.parentNode;
+            const editInput = listItem.firstChild;
+            const taskText = document.createElement("span");
+            taskText.textContent = editInput.value;
+            listItem.insertBefore(taskText, editInput);
+            listItem.removeChild(editInput);
+            event.target.innerText = "Edit";
+            event.target.removeEventListener("click", saveTask);
+            event.target.addEventListener("click", editTask);
+
+
+                 // get the ID of the task being edited
+                 const itemId = parseInt(listItem.getAttribute("id"));
+
+// update the task in the server
+const myPayload = { 
+    "task": editInput.value,
+    "id": itemId
+}
+            fetch(`http://localhost:9000/inputTask/editTask/${itemId}`, {
+                method: "PUT", 
+                headers: {
+                'Accept': "application/json",
+                'Content-Type': "application/json"
+                },
+                body: JSON.stringify(myPayload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+            });
+            }
+            }
+
+            function deleteTask(event) {
+                const listItem = event.target.parentNode;
+                const itemId = parseInt(listItem.getAttribute("id"));
+                globalvar = itemId;
+                const itemList = listItem.parentNode;
+                itemList.removeChild(listItem);
+                addButton.disabled = false;
+                addButton.innerHTML = "Add";
+
+                console.log(globalvar);
+                console.log("ito ang id ng delted content");
+
+                fetch(`http://localhost:9000/inputTask/deleteTask/${itemId}`, {
+                    method: "DELETE",
+                    })
+                    .then((res1) => res1.json())
+                    .then((data1) => {
+                    console.log(data1);
+                });
+            }
+
+            function markTaskDone(event) {
+                const listItem = event.target.parentNode;
+                listItem.style.textDecoration = "line-through";
+            }
+
+        </script>
+    </body>
+</html>
